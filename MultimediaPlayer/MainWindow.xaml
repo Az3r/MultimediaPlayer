@@ -19,8 +19,13 @@
         <local:TimeSpanToString x:Key="TimeSpanToStringConverter"/>
         <local:RemoveExtension x:Key="RemoveExtensionConverter"/>
         <local:ZeroOneToPercentage x:Key="ZeroOneToPercentageConverter"/>
-        
+
         <!--Colors-->
+        <LinearGradientBrush x:Key="VideoPanelBackground" StartPoint="0 0" EndPoint="1 1">
+            <GradientStop Color="#ddd" Offset="0"/>
+            <GradientStop Color="#ababab" Offset="0.5"/>
+            <GradientStop Color="#ccc" Offset="1"/>
+        </LinearGradientBrush>
         <LinearGradientBrush x:Key="ProgressBarForground" SpreadMethod="Repeat" StartPoint="0 0" EndPoint="0 1">
             <GradientStop Color="#66f" Offset="0"/>
             <GradientStop Color="#000080" Offset="0.45"/>
@@ -55,8 +60,8 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
-        
-        
+
+
         <Style TargetType="Image" x:Key="SongControlImage">
             <Setter Property="Width" Value="24"/>
             <Setter Property="Height" Value="24"/>
@@ -66,7 +71,7 @@
         <Style TargetType="Button" BasedOn="{StaticResource SongControlButton}" x:Key="PlayButton">
             <Setter Property="Content">
                 <Setter.Value>
-                    <Image Style="{StaticResource SongControlImage}" Width="48" Height="48" Source="/icons/pause.png"/>
+                    <Image Style="{StaticResource SongControlImage}" Width="48" Height="48" Source="/icons/play.png"/>
                 </Setter.Value>
             </Setter>
             <Style.Triggers>
@@ -76,31 +81,48 @@
                     </Trigger.Value>
                     <Setter Property="Content">
                         <Setter.Value>
-                            <Image Style="{StaticResource SongControlImage}" Width="48" Height="48" Source="/icons/play.png"/>
+                            <Image Style="{StaticResource SongControlImage}" Width="48" Height="48" Source="/icons/pause.png"/>
                         </Setter.Value>
                     </Setter>
 
                 </Trigger>
             </Style.Triggers>
         </Style>
-        
+
     </Window.Resources>
 
     <!--Window Commands-->
     <Window.CommandBindings>
         <CommandBinding Command="{x:Static local:MediaCommands.Exit}" CanExecute="ExitCanExecute" Executed="ExitExecuted"/>
+        <CommandBinding Command="{x:Static local:MediaCommands.Switch}" CanExecute="SwitchCanExecute" Executed="SwitchExecuted"/>
         <CommandBinding Command="{x:Static local:MediaCommands.Play}" CanExecute="PlayCanExecute" Executed="PlayExecuted"/>
         <CommandBinding Command="{x:Static local:MediaCommands.Rename}" CanExecute="RenameCanExecute" Executed="RenameExecuted"/>
         <CommandBinding Command="{x:Static local:MediaCommands.Create}" CanExecute="CreateCanExecute" Executed="CreateExecuted"/>
+        <CommandBinding Command="{x:Static local:MediaCommands.RemovePlaylist}" CanExecute="RemovePlaylistCanExecute" Executed="RemovePlaylistExecuted"/>
+        <CommandBinding Command="{x:Static local:MediaCommands.PlayPlaylist}" CanExecute="RunPlaylistCanExecute" Executed="RunPlaylistExecuted"/>
+        <CommandBinding Command="{x:Static local:MediaCommands.Next}" CanExecute="NextCanExecute" Executed="NextExecuted"/>
+        <CommandBinding Command="{x:Static local:MediaCommands.Previous}" CanExecute="PreviousCanExecute" Executed="PreviousExecuted"/>
+        <CommandBinding Command="{x:Static local:MediaCommands.Forward}" CanExecute="ForwardCanExecute" Executed="ForwardExecuted"/>
+        <CommandBinding Command="{x:Static local:MediaCommands.Backward}" CanExecute="BackwardCanExecute" Executed="BackwardExecuted"/>
+        <CommandBinding Command="{x:Static local:MediaCommands.Random}" CanExecute="RandomCanExecute" Executed="RandomExecuted"/>
+        <CommandBinding Command="{x:Static local:MediaCommands.Stop}" CanExecute="StopCanExecute" Executed="StopExcuted"/>
+        <CommandBinding Command="{x:Static local:MediaCommands.FullScreen}" CanExecute="FullScreenCanExecute" Executed="FullScreenExcuted"/>
+        <CommandBinding Command="{x:Static local:MediaCommands.RemoveSong}" CanExecute="RemoveSongCanExecute" Executed="RemoveSongExcuted"/>
     </Window.CommandBindings>
     <Window.InputBindings>
         <KeyBinding Gesture="Alt+F4" Command="{x:Static local:MediaCommands.Exit}"/>
-        <KeyBinding Gesture="Ctrl+P" Command="{x:Static local:MediaCommands.Play}" />
+        <KeyBinding Gesture="Ctrl+P" Command="{x:Static local:MediaCommands.Switch}" />
         <KeyBinding Gesture="F2" Command="{x:Static local:MediaCommands.Rename}"/>
         <KeyBinding Gesture="Ctrl+R" Command="{x:Static local:MediaCommands.Rename}"/>
-        <KeyBinding Gesture="Ctrl+N" Command="{x:Static local:MediaCommands.Create}"/>
+        <KeyBinding Gesture="Ctrl+Q" Command="{x:Static local:MediaCommands.Create}"/>
+        <KeyBinding Key="Delete" Command="{x:Static local:MediaCommands.RemovePlaylist}"/>
+        <KeyBinding Gesture="Ctrl+S" Command="{x:Static local:MediaCommands.Stop}"/>
+        <KeyBinding Gesture="Ctrl+N" Command="{x:Static local:MediaCommands.Next}"/>
+        <KeyBinding Gesture="Ctrl+B" Command="{x:Static local:MediaCommands.Previous}"/>
+        <KeyBinding Gesture="Ctrl+M" Command="{x:Static local:MediaCommands.Random}"/>
+        <KeyBinding Gesture="Alt+F11" Command="{x:Static local:MediaCommands.FullScreen}"/>
     </Window.InputBindings>
-    
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="auto"/>
@@ -118,59 +140,63 @@
                 <MenuItem Header="_Exit" BorderThickness="0" InputGestureText="Alt+F4" Command="{x:Static local:MediaCommands.Exit}"/>
             </MenuItem>
             <MenuItem Header="_View">
-                <MenuItem Header="_Full Screen" InputGestureText="Alt+F11">
+                <MenuItem Header="_Full Screen" InputGestureText="Alt+F11" Command="{x:Static local:MediaCommands.FullScreen}">
                     <MenuItem.Icon>
                         <Image Source="/icons/expand.png" />
                     </MenuItem.Icon>
                 </MenuItem>
             </MenuItem>
             <MenuItem Header="_Songs">
-                <MenuItem Header="_Play/Pause" InputGestureText="P">
+                <MenuItem Header="_Play/Pause" InputGestureText="Ctrl+P" Command="{x:Static local:MediaCommands.Switch}">
                     <MenuItem.Icon>
                         <Image Source="/icons/play.png"/>
                     </MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="_Stop" InputGestureText="S">
+                <MenuItem Header="_Stop" InputGestureText="Ctrl+S" Command="{x:Static local:MediaCommands.Stop}">
                     <MenuItem.Icon>
                         <Image Source="/icons/stop.png"/>
                     </MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="_Next" InputGestureText="N">
+                <MenuItem Header="_Next" InputGestureText="Ctrl+N" Command="{x:Static local:MediaCommands.Next}">
                     <MenuItem.Icon>
                         <Image Source="/icons/next.png"/>
                     </MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="_Previous" InputGestureText="B">
+                <MenuItem Header="_Previous" InputGestureText="Ctrl+B" Command="{x:Static local:MediaCommands.Previous}">
                     <MenuItem.Icon>
                         <Image Source="/icons/previous.png"/>
                     </MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="_Random" InputGestureText="M">
+                <MenuItem Header="_Random" InputGestureText="Ctrl+M" Command="{x:Static local:MediaCommands.Random}">
                     <MenuItem.Icon>
                         <Image Source="/icons/shuffle.png"/>
                     </MenuItem.Icon>
                 </MenuItem>
             </MenuItem>
             <MenuItem Header="_Playlists">
-                <MenuItem Header="_Create Playlist" InputGestureText="Ctrl+N" Command="{x:Static local:MediaCommands.Create}">
+                <MenuItem Header="_Create Playlist" InputGestureText="Ctrl+Q" Command="{x:Static local:MediaCommands.Create}">
                     <MenuItem.Icon>
                         <Image Source="/icons/playlist.png"/>
                     </MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="_Remove Playlist" InputGestureText="Del">
+                <MenuItem Header="_Remove Playlist" InputGestureText="Del" Command="{x:Static local:MediaCommands.RemovePlaylist}">
                     <MenuItem.Icon>
                         <Image Source="/icons/delete.png"/>
                     </MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="Re_name Playlist" InputGestureText="F2" Command="{x:Static local:MediaCommands.Rename}"/>
+                <MenuItem Header="Re_name Playlist" InputGestureText="F2" Command="{x:Static local:MediaCommands.Rename}">
+                    <MenuItem.Icon>
+                        <Image Source="/icons/pencil.png"/>
+                    </MenuItem.Icon>
+                </MenuItem>
             </MenuItem>
             <MenuItem Header="A_bout">
-                <MenuItem Header="_Student" InputGestureText="Alt+S" Click="OnDisplayStudentInformation">
+                <MenuItem Header="_Student" Click="OnDisplayStudentInformation">
                     <MenuItem.Icon>
                         <Image Source="/icons/github.png"/>
                     </MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="_Github" InputGestureText="Alt+G" Click="OnDisplayGithubLink">
+                <MenuItem Header="_Github" Click="OnDisplayGithubLink">
                     <MenuItem.Icon>
                         <Image Source="/icons/student.png"/>
                     </MenuItem.Icon>
@@ -198,15 +224,26 @@
                     </DockPanel>
                     <ListBox Name="lbPlayList" Margin="16 0 0 0" ItemsSource="{Binding PlaylistFiles}"
                             Background="Transparent" BorderThickness="0" 
-                            SelectionMode="Single" SelectionChanged="OnListboxSelectionChanged"
+                            SelectionMode="Single"
                             HorizontalContentAlignment="Stretch">
                         <!--Listbox ContextMenu-->
                         <ListBox.ContextMenu>
                             <ContextMenu>
-                                <MenuItem Header="_Play" FontWeight="Bold"/>
-                                <MenuItem Header="_Open"/>
-                                <MenuItem Header="_Rename" Command="{x:Static local:MediaCommands.Rename}"/>
-                                <MenuItem Header="_Delete"/>
+                                <MenuItem Header="_Play" FontWeight="Bold" Command="{x:Static local:MediaCommands.PlayPlaylist }">
+                                    <MenuItem.Icon>
+                                        <Image Source="/icons/play.png"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="_Rename" Command="{x:Static local:MediaCommands.Rename}">
+                                    <MenuItem.Icon>
+                                        <Image Source="/icons/pencil.png"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="_Delete" Command="{x:Static local:MediaCommands.RemovePlaylist}">
+                                    <MenuItem.Icon>
+                                        <Image Source="/icons/delete.png"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
                             </ContextMenu>
                         </ListBox.ContextMenu>
                         <ListBox.ItemTemplate>
@@ -226,6 +263,7 @@
                         </ListBox.ItemTemplate>
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
+                                <EventSetter Event="MouseUp" Handler="OnDisplaySelectedPlaylist"/>
                                 <Setter Property="Padding" Value="0"/>
                                 <Style.Triggers>
                                     <Trigger Property="IsMouseOver" Value="true">
@@ -322,10 +360,22 @@
                                     </Style.Triggers>
                                 </Style>
                             </ContextMenu.ItemContainerStyle>
-                            <MenuItem Header="_Play" FontWeight="Bold"/>
-                            <MenuItem Header="_Play next"/>
-                            <MenuItem Header="_Add to playlist"/>
-                            <MenuItem Header="_Remove"/>
+                            <MenuItem Header="_Play" FontWeight="Bold" Command="{x:Static local:MediaCommands.Play}"/>
+                            <MenuItem Header="_Play next" Click="OnAddPlayNext"/>
+                            <MenuItem Header="_Add to playlist" ItemsSource="{Binding PlaylistFiles}" Click="MenuItem_Click">
+                                <MenuItem.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image DockPanel.Dock="Left" Margin="5" Width="16" Height="16"
+                                                Source="/icons/list.png"/>
+                                            <TextBlock Text="{Binding Path=Name, Converter={StaticResource RemoveExtensionConverter},Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}"
+                                                Background="Transparent"
+                                                VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </MenuItem.ItemTemplate>
+                            </MenuItem>
+                            <MenuItem Header="_Remove" Command="{x:Static local:MediaCommands.RemoveSong}"/>
                         </ContextMenu>
                     </DataGrid.ContextMenu>
                 </DataGrid>
@@ -344,6 +394,12 @@
                         </Style>
                     </Label.Style>
                 </Label>
+                <Canvas Grid.Column="2" Name="VideoPanel" Background="{StaticResource VideoPanelBackground}" Visibility="Visible">
+                    <Image Panel.ZIndex="-1" Width="128" Height="128" Source="/icons/clef.png" Canvas.Left="446" Canvas.Top="225"/>
+                    <ContentControl Name="MediaPlayer" Content="{Binding MediaPlayer}"
+                                  Width="{Binding ElementName=VideoPanel,Path=ActualWidth}"
+                                  Height="{Binding ElementName=VideoPanel,Path=ActualHeight}"/>
+                </Canvas>
             </Grid>
 
         </Canvas>
@@ -353,22 +409,37 @@
                 <RowDefinition Height="30"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="40"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
-            <Border Grid.Row="0" Padding="0 0 0 5" Height="20"
+            <StackPanel Grid.Row="2" Grid.Column="0" VerticalAlignment="Center">
+                <Button Width="32" Height="32" Click="OnDisplayVideoPanel">
+                    <Button.Content>
+                        <Image Source="/icons/video-window.png" Stretch="UniformToFill"/>
+                    </Button.Content>
+                    <Button.ToolTip>
+                        <ToolTip Content="Switch to now playing screen" Placement="Bottom"/>
+                    </Button.ToolTip>
+                </Button>
+            </StackPanel>
+
+            <Border Grid.Row="0" Grid.ColumnSpan="10" Padding="0 0 0 5" Height="20"
                     MouseLeftButtonDown="OnCaptureSongPosition"
                     MouseLeftButtonUp="OnReleaseSongPosition"
                     MouseMove="OnUpdateSongPosition">
                 <ProgressBar Name="SongProgressBar"  Background="White" Foreground="{StaticResource ProgressBarForground}"
-                         Value="{Binding SongProgress, Mode=OneWay}">
+                         Value="{Binding SongProgress, Mode=TwoWay}">
                 </ProgressBar>
             </Border>
 
-            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center">
+            <StackPanel Grid.Row="1" Grid.ColumnSpan="10" Orientation="Horizontal" HorizontalAlignment="Center">
                 <Label Foreground="White" Content="{Binding SongPosition, Converter={StaticResource TimeSpanToStringConverter}, Mode=OneWay}"/>
                 <Label Foreground="White" Content="/"/>
                 <Label Foreground="White" Content="{Binding SongDuration, Converter={StaticResource TimeSpanToStringConverter}, Mode=OneWay}"/>
             </StackPanel>
-            <Border Grid.Row="2" BorderBrush="White" BorderThickness="1" Background="{StaticResource SongControlBackground}" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Border Grid.Row="2" Grid.ColumnSpan="10" BorderBrush="White" BorderThickness="1" Background="{StaticResource SongControlBackground}" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center">
                     <Button Style="{StaticResource SongControlButton}" Tag="{Binding IsRecycleOn,Mode=OneWay}" Click="OnClickRecyclePlaylist">
                         <Button.Content>
@@ -394,7 +465,7 @@
                             <ToolTip Content="Repeat current song" Placement="Bottom"/>
                         </Button.ToolTip>
                     </Button>
-                    <Button Style="{StaticResource SongControlButton}" Click="OnClickStopSong">
+                    <Button Style="{StaticResource SongControlButton}" Command="{x:Static local:MediaCommands.Stop}">
                         <Button.Content>
                             <Image Style="{StaticResource SongControlImage}" Source="/icons/stop.png"/>
                         </Button.Content>
@@ -402,7 +473,7 @@
                             <ToolTip Content="Stop current song" Placement="Bottom"/>
                         </Button.ToolTip>
                     </Button>
-                    <Button Style="{StaticResource SongControlButton}" Click="OnClickPreviousSong">
+                    <Button Style="{StaticResource SongControlButton}" Command="{x:Static local:MediaCommands.Previous}">
                         <Button.Content>
                             <Image Style="{StaticResource SongControlImage}" Source="/icons/previous.png"/>
                         </Button.Content>
@@ -410,7 +481,7 @@
                             <ToolTip Content="Play previous song" Placement="Bottom"/>
                         </Button.ToolTip>
                     </Button>
-                    <Button Style="{StaticResource SongControlButton}" Click="OnClickBackwardSong">
+                    <Button Style="{StaticResource SongControlButton}" Command="{x:Static local:MediaCommands.Backward}">
                         <Button.Content>
                             <Image Style="{StaticResource SongControlImage}" Source="/icons/backward.png"/>
                         </Button.Content>
@@ -418,18 +489,18 @@
                             <ToolTip Content="Offset song backward" Placement="Bottom"/>
                         </Button.ToolTip>
                     </Button>
-                    <Button Style="{StaticResource PlayButton}" Tag="{Binding IsPlaying}" Click="OnClickSwitchPlayMode">
+                    <Button Style="{StaticResource PlayButton}" Tag="{Binding IsPlaying}" Command="{x:Static local:MediaCommands.Switch}">
                         <Button.ToolTip>
                             <ToolTip Content="Play/Pause" Placement="Bottom"/>
                         </Button.ToolTip>
                     </Button>
-                    <Button Style="{StaticResource SongControlButton}" Click="OnClickForwardSong">
+                    <Button Style="{StaticResource SongControlButton}" Command="{x:Static local:MediaCommands.Forward}">
                         <Image Style="{StaticResource SongControlImage}" Source="/icons/forward.png"/>
                         <Button.ToolTip>
                             <ToolTip Content="Offset song forward" Placement="Bottom"/>
                         </Button.ToolTip>
                     </Button>
-                    <Button Style="{StaticResource SongControlButton}" Click="OnClickNextSong">
+                    <Button Style="{StaticResource SongControlButton}" Command="{x:Static local:MediaCommands.Next}">
                         <Image Style="{StaticResource SongControlImage}" Source="/icons/next.png"/>
                         <Button.ToolTip>
                             <ToolTip Content="Play next song" Placement="Bottom"/>

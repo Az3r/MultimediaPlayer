@@ -11,6 +11,8 @@ using System.Timers;
 using System.Collections.ObjectModel;
 using System.Windows.Media.Imaging;
 using System.Xml.Serialization;
+using System.Windows.Controls;
+
 namespace MultimediaPlayer
 {
     public class MediaViewModel : INotifyPropertyChanged, IDisposable
@@ -45,12 +47,15 @@ namespace MultimediaPlayer
             mMediaPlayer.MediaOpened += MediaOpened;
             mMediaPlayer.MediaEnded += MediaEnded;
             mMediaPlayer.MediaFailed += MediaFailed;
+            mMediaPlayer.LoadedBehavior = MediaState.Manual;
+            mMediaPlayer.UnloadedBehavior = MediaState.Stop;
+            mMediaPlayer.Play();
 
             // init timer to update song's position
             mSongTimer = new Timer()
             {
                 Enabled = true,
-                Interval = 1000.0/60.0
+                Interval = 1000.0 / 60.0
             };
             mSongTimer.Elapsed += TimerUpdateSongPosition;
         }
@@ -65,7 +70,7 @@ namespace MultimediaPlayer
         {
             mMediaPlayer.Dispatcher.Invoke(() =>
             {
-                SongPosition = mMediaPlayer.Position;
+                OnPropertyChanged(nameof(SongPosition));
             });
         }
         public async Task<IEnumerable<SongInfo>> LoadSongsFromPlaylist(Playlist playlist)
@@ -91,7 +96,13 @@ namespace MultimediaPlayer
             });
             return await task;
         }
-
+        public void AddToPlaylistFile(Playlist playlist, IEnumerable<string> collection)
+        {
+            foreach (string item in collection)
+            {
+                playlist.SongLocations.Add(item);
+            }
+        }
         public async Task<IEnumerable<SongInfo>> LoadSongsFromUris(IEnumerable<Uri> collection)
         {
             Task<IEnumerable<SongInfo>> task = Task.Run<IEnumerable<SongInfo>>(() =>
@@ -274,7 +285,7 @@ namespace MultimediaPlayer
                     foreach (SongInfo song in e.Result as IEnumerable<SongInfo>)
                     {
                         // add new songs to library and current displayed song collection
-                        if (PlaylistLibrary.SongLocations.Add(song.Uri.LocalPath))
+                        if (PlaylistLibrary.SongLocations.Add(song.Uri.LocalPath) || AllSongs.Count < PlaylistLibrary.SongLocations.Count)
                         {
                             AllSongs.Add(song);
                             Helpers.ConsoleLogger.Info($"Added {song.Uri.LocalPath} to {PlaylistLibrary.Name}");
@@ -322,19 +333,44 @@ namespace MultimediaPlayer
             }
 
         }
+        public void DeletePlaylist(Playlist item)
+        {
+            File.Delete(Path.Combine(Environment.CurrentDirectory, PlaylistDir, item.Name));
+            PlaylistFiles.Remove(item);
+        }
+        public void PlaySelectedPlaylist()
+        {
+            if (CurrentSelectedPlaylistFile != null)
+            {
+                List<Uri> uris = new List<Uri>();
+                foreach (string item in CurrentSelectedPlaylistFile.SongLocations)
+                {
+                    try
+                    {
+                        uris.Add(new Uri(item));
+                    }
+                    catch (Exception e)
+                    {
+                        Helpers.ConsoleLogger.Error($"Error while open file {item}: {e.GetType().Name} - {e.Message}");
+                    }
+                }
+                PlayAsSelectedPlaylist(uris);
+
+            }
+        }
         public void PlayNextSong()
         {
             if (SelectedPlayList.Count == 0) return;
             if (PlayingSongNode is null) PlayingSongNode = SelectedPlayList.First;
             else PlayingSongNode = PlayingSongNode.Next ?? SelectedPlayList.First;
-            mMediaPlayer.Open(PlayingSongNode.Value);
+            mMediaPlayer.Source = PlayingSongNode.Value;
         }
         public void PlayPreviousSong()
         {
             if (SelectedPlayList.Count == 0) return;
             if (PlayingSongNode is null) PlayingSongNode = SelectedPlayList.Last;
             else PlayingSongNode = PlayingSongNode.Previous ?? SelectedPlayList.Last;
-            mMediaPlayer.Open(PlayingSongNode.Value);
+            mMediaPlayer.Source = PlayingSongNode.Value;
         }
         public void MovePositionForward()
         {
@@ -348,7 +384,8 @@ namespace MultimediaPlayer
         public void SwitchPlayMode()
         {
             IsPlaying = !IsPlaying;
-            if (IsPlaying) mMediaPlayer.Play();
+            if (IsPlaying && PlayingSongNode.Next == null) PlayNextSong();
+            else if (IsPlaying) mMediaPlayer.Play();
             else mMediaPlayer.Pause();
         }
         public void StopPlaying()
@@ -364,14 +401,33 @@ namespace MultimediaPlayer
                 IsPlaying = true;
                 PlayingSongNode = SelectedPlayList.First;
                 while (start-- > 0) PlayingSongNode = PlayingSongNode.Next;
-                mMediaPlayer.Open(PlayingSongNode.Value);
+                mMediaPlayer.Source = PlayingSongNode.Value;
             }
         }
-        public void AddtoCurrentPlaylist(IEnumerable<Uri> collection)
+
+        public void PlayRandom()
         {
-            foreach (Uri item in collection)
+            if (SelectedPlayList.Count == 0) return;
+            Random generator = new Random();
+            int index = generator.Next(0, SelectedPlayList.Count);
+            var node = SelectedPlayList.First;
+            while (index-- > 0) node = node.Next;
+            PlayingSongNode = node;
+            mMediaPlayer.Source = PlayingSongNode.Value;
+        }
+        public void AddtoSelectedPlaylist(IEnumerable<string> collection)
+        {
+            foreach (string item in collection)
             {
-                SelectedPlayList.AddLast(item);
+                try
+                {
+                    Uri uri = new Uri(item);
+                    SelectedPlayList.AddLast(uri);
+                }
+                catch (Exception e)
+                {
+                    Helpers.ConsoleLogger.Error($"Error while open file {item}: {e.GetType().Name} - {e.Message}");
+                }
             }
         }
         public void PlayAtPercentage(double percent)
@@ -379,7 +435,7 @@ namespace MultimediaPlayer
             percent = Math.Abs(percent) % 101;
             SongPosition = new TimeSpan((long)(SongDuration.Ticks / 100.0 * percent));
         }
-        private void MediaFailed(object sender, ExceptionEventArgs e)
+        private void MediaFailed(object sender, System.Windows.ExceptionRoutedEventArgs e)
         {
             Helpers.ConsoleLogger.Error($"{e.ErrorException.GetType().Name}: {e.ErrorException.Message}");
             PlayNextSong();
@@ -399,27 +455,32 @@ namespace MultimediaPlayer
                 var node = SelectedPlayList.First;
                 while (index-- > 0) node = node.Next;
                 PlayingSongNode = node;
-                mMediaPlayer.Open(PlayingSongNode.Value);
+                mMediaPlayer.Source = PlayingSongNode.Value;
             }
             else if (IsRecycleOn || PlayingSongNode.Next != null)
             {
                 PlayNextSong();
             }
+            else IsPlaying = false;
         }
 
         private void MediaOpened(object sender, EventArgs e)
         {
             // update view to new playing song
-            OnPropertyChanged(nameof(SongDuration));
-            OnPropertyChanged(nameof(SongProgress));
-            OnPropertyChanged(nameof(SongPosition));
-
-            if (IsPlaying) mMediaPlayer.Play();
+            if (IsPlaying)
+            {
+                mMediaPlayer.Play();
+                OnPropertyChanged(nameof(SongDuration));
+            }
         }
 
         public TimeSpan SongPosition
         {
-            get => mMediaPlayer.Position;
+            get
+            {
+                OnPropertyChanged(nameof(SongProgress));
+                return mMediaPlayer.Position;
+            }
             set
             {
                 mMediaPlayer.Position = value;
@@ -428,7 +489,16 @@ namespace MultimediaPlayer
             }
         }
         public TimeSpan SongDuration => mMediaPlayer.NaturalDuration.HasTimeSpan? mMediaPlayer.NaturalDuration.TimeSpan : new TimeSpan(0);
-        public double SongProgress => SongDuration.Ticks == 0 ? 100 : SongPosition.TotalSeconds / SongDuration.TotalSeconds * 100.0;
+        public double SongProgress
+        {
+            get => SongDuration.Ticks == 0 ? 100 : mMediaPlayer.Position.TotalSeconds / SongDuration.TotalSeconds * 100.0;
+            set
+            {
+                value = Math.Abs(value) % 101;
+                SongPosition = new TimeSpan((long)(SongDuration.Ticks / 100.0 * value));
+                OnPropertyChanged();
+            }
+        }
         public double SongVolume
         {
             get => mMediaPlayer.Volume;
@@ -471,6 +541,16 @@ namespace MultimediaPlayer
                 OnPropertyChanged();
             }
         }
+        public MediaElement MediaPlayer
+        {
+            get => mMediaPlayer;
+            set
+            {
+                mMediaPlayer = value;
+                OnPropertyChanged();
+            }
+        }
+
         public double SavedVolume { get; set; }
         public Playlist CurrentSelectedPlaylistFile { get; set; }
         public LinkedList<Uri> SelectedPlayList { get; set; } = new LinkedList<Uri>();
@@ -495,14 +575,14 @@ namespace MultimediaPlayer
 
         public ObservableCollection<SongInfo> AllSongs { get; set; } = new ObservableCollection<SongInfo>();
 
-        private readonly MediaPlayer mMediaPlayer = new MediaPlayer();
+        private MediaElement mMediaPlayer = new MediaElement();
         private Timer mSongTimer = null;
 
         private readonly int SongOffset = 5;
         public Playlist PlaylistLibrary;
         public readonly string SongDir = "Library";
         public readonly string PlaylistDir = "Playlists";
-        public readonly string[] MediaTypes = new string[] { ".mp3", ".wmv" };
+        public readonly string[] MediaTypes = new string[] { ".mp3", ".wmv", ".mp4" };
 
         /*      Event Notifiers     */
         public event PropertyChangedEventHandler PropertyChanged;

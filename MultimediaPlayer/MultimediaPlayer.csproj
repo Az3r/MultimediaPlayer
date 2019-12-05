@@ -120,7 +120,7 @@
   <ItemGroup>
     <Resource Include="icons\backward.png" />
     <Resource Include="icons\delete.png" />
-    <Content Include="icons\down-arrow.svg" />
+    <Resource Include="icons\clef.png" />
     <Resource Include="icons\list.png" />
     <Resource Include="icons\playlist.png" />
     <Resource Include="icons\musical-note.png" />
@@ -138,8 +138,9 @@
     <Resource Include="icons\student.png" />
     <Resource Include="icons\recycle.png" />
     <Resource Include="icons\music-file.png" />
-    <Content Include="icons\up-arrow.svg" />
+    <Resource Include="icons\pencil.png" />
     <Resource Include="icons\volume.png" />
+    <Resource Include="icons\video-window.png" />
     <Content Include="library\Astrophysics_-_Il_Vento_Doro_Giornos_Theme_synthwave_retro_80s_remix_%28mp3.pm%29.mp3">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

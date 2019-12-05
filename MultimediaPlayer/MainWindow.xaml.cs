@@ -37,6 +37,9 @@ namespace MultimediaPlayer
         {
             SongProgressBar.CaptureMouse();
             IsMouseCapture = true;
+
+            // user maybe click and release so update event will not be fired
+            OnUpdateSongPosition(sender, e);
         }
         private void OnReleaseSongPosition(object sender, MouseButtonEventArgs e)
         {
@@ -44,17 +47,10 @@ namespace MultimediaPlayer
             IsMouseCapture = false;
 
             ViewModel.PlayAtPercentage(SongProgressBar.Value);
-            //rebinding
-            Binding binding = new Binding
-            {
-                Source = ViewModel.SongProgress,
-                Mode = BindingMode.OneWay
-            };
-            SongProgressBar.SetBinding(ProgressBar.ValueProperty, binding);
         }
         private void OnUpdateSongPosition(object sender, MouseEventArgs e)
         {
-            if(IsMouseCapture && e.LeftButton == MouseButtonState.Pressed)
+            if (IsMouseCapture && e.LeftButton == MouseButtonState.Pressed)
             {
                 Point mouse = e.GetPosition(this);
                 Point progressbar = SongProgressBar.TransformToAncestor(this).Transform(new Point(0, 0));
@@ -72,51 +68,6 @@ namespace MultimediaPlayer
         {
             ViewModel.SaveAllPlaylist();
             ViewModel.Dispose();
-        }
-        private void OnListboxSelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (lbPlayList.SelectedItem is Playlist playlist)
-            {
-                ViewModel.LoadSongsFromPlaylist(playlist).ContinueWith(task =>
-                {
-                    IEnumerable<SongInfo> songs = task.Result;
-                    ViewModel.CurrentSongCollection = new ObservableCollection<SongInfo>(songs);
-                    ViewModel.CurrentSelectedPlaylistFile = playlist;
-                });
-            }
-        }
-
-        private void OnClickPreviousSong(object sender, RoutedEventArgs e)
-        {
-            ViewModel.PlayPreviousSong();
-        }
-
-        private void OnClickBackwardSong(object sender, RoutedEventArgs e)
-        {
-            ViewModel.MovePositionBackward();
-        }
-
-        private void OnClickSwitchPlayMode(object sender, RoutedEventArgs e)
-        {
-            if (ViewModel.SelectedPlayList.Count == 0)
-            {
-                OnPlaySelectedSong(null, null);
-            }
-            else ViewModel.SwitchPlayMode();
-        }
-
-        private void OnClickForwardSong(object sender, RoutedEventArgs e)
-        {
-            ViewModel.MovePositionForward();
-        }
-
-        private void OnClickNextSong(object sender, RoutedEventArgs e)
-        {
-            ViewModel.PlayNextSong();
-        }
-        private void OnClickStopSong(object sender, RoutedEventArgs e)
-        {
-            ViewModel.StopPlaying();
         }
 
         private void OnClickReplaySong(object sender, RoutedEventArgs e)
@@ -137,19 +88,12 @@ namespace MultimediaPlayer
 
         private void OnPlaySelectedSong(object sender, MouseButtonEventArgs e)
         {
-            List<Uri> collection = new List<Uri>();
-            for (int i = 0; i < SongDataGrid.Items.Count; ++i)
-            {
-                SongInfo song = SongDataGrid.Items[i] as SongInfo;
-                collection.Add(song.Uri);
-            }
-            int index = SongDataGrid.SelectedIndex < 0 ? 0 : SongDataGrid.SelectedIndex;
-            ViewModel.PlayAsSelectedPlaylist(collection, index);
+            PlayExecuted(null, null);
         }
 
         private void OnClickRecyclePlaylist(object sender, RoutedEventArgs e)
         {
-            ViewModel.IsRecycleOn = !ViewModel.IsRecycleOn; 
+            ViewModel.IsRecycleOn = !ViewModel.IsRecycleOn;
         }
 
         private void OnCaptureVolume(object sender, MouseButtonEventArgs e)
@@ -162,6 +106,8 @@ namespace MultimediaPlayer
 
             // save progress's value at capture time and use this value in OnUpdateVolume
             VolumeProgressBar.Tag = VolumeProgressBar.Value + SavedMousePoint.X - (VolumeProgressBar.TransformToAncestor(this).Transform(new Point(0, 0)).X + VolumeProgressBar.Value);
+
+            OnUpdateVolume(sender, e);
         }
 
         private void OnReleaseVolume(object sender, MouseButtonEventArgs e)
@@ -172,7 +118,7 @@ namespace MultimediaPlayer
 
         private void OnUpdateVolume(object sender, MouseEventArgs e)
         {
-            if(IsMouseCapture && e.LeftButton == MouseButtonState.Pressed)
+            if (IsMouseCapture && e.LeftButton == MouseButtonState.Pressed)
             {
                 double offset = e.GetPosition(this).X - SavedMousePoint.X;
                 double value = Convert.ToDouble(VolumeProgressBar.Tag) + offset / VolumeProgressBar.ActualWidth * 100.0;
@@ -184,7 +130,7 @@ namespace MultimediaPlayer
 
         private void ExitCanExecute(object sender, CanExecuteRoutedEventArgs e)
         {
-            e.CanExecute =  true;
+            e.CanExecute = true;
         }
 
         private void ExitExecuted(object sender, ExecutedRoutedEventArgs e)
@@ -199,7 +145,14 @@ namespace MultimediaPlayer
 
         private void PlayExecuted(object sender, ExecutedRoutedEventArgs e)
         {
-            ViewModel.SwitchPlayMode();
+            List<Uri> collection = new List<Uri>();
+            for (int i = 0; i < SongDataGrid.Items.Count; ++i)
+            {
+                SongInfo song = SongDataGrid.Items[i] as SongInfo;
+                collection.Add(song.Uri);
+            }
+            int index = SongDataGrid.SelectedIndex < 0 ? 0 : SongDataGrid.SelectedIndex;
+            ViewModel.PlayAsSelectedPlaylist(collection, index);
         }
 
         private void OnTextBoxKeyDown(object sender, KeyEventArgs e)
@@ -290,7 +243,7 @@ namespace MultimediaPlayer
 
         private void CreateExecuted(object sender, ExecutedRoutedEventArgs e)
         {
-            ViewModel.PlaylistFiles.Add(new Playlist("unamed"));
+            ViewModel.PlaylistFiles.Add(new Playlist("unamed.xml"));
         }
 
         private void OnDisplayStudentInformation(object sender, RoutedEventArgs e)
@@ -300,7 +253,175 @@ namespace MultimediaPlayer
 
         private void OnDisplayGithubLink(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Nguyễn Mạnh Tuấn 1712875", "Student");
+            Clipboard.SetText("https://github.com/Az3r/MediaPlayer");
+            MessageBox.Show("Copied 'https://github.com/Az3r/MediaPlayer' to clipboard");
+        }
+
+        private void RemovePlaylistCanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            if (lbPlayList.SelectedIndex >= 0) e.CanExecute = true;
+        }
+
+        private void RemovePlaylistExecuted(object sender, ExecutedRoutedEventArgs e)
+        {
+            ViewModel.DeletePlaylist(lbPlayList.SelectedItem as Playlist);
+        }
+
+        private void OnDisplaySelectedPlaylist(object sender, MouseButtonEventArgs e)
+        {
+            if (lbPlayList.SelectedItem is Playlist playlist)
+            {
+                ViewModel.LoadSongsFromPlaylist(playlist).ContinueWith(task =>
+                {
+                    IEnumerable<SongInfo> songs = task.Result;
+                    ViewModel.CurrentSongCollection = new ObservableCollection<SongInfo>(songs);
+                    ViewModel.CurrentSelectedPlaylistFile = playlist;
+                });
+            }
+        }
+
+        private void RunPlaylistCanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            if (lbPlayList.SelectedIndex >= 0) e.CanExecute = true;
+        }
+
+        private void RunPlaylistExecuted(object sender, ExecutedRoutedEventArgs e)
+        {
+            ViewModel.PlaySelectedPlaylist();
+        }
+
+        private void SwitchCanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = true;
+        }
+
+        private void SwitchExecuted(object sender, ExecutedRoutedEventArgs e)
+        {
+            if (ViewModel.SelectedPlayList.Count == 0)
+            {
+                List<Uri> collection = new List<Uri>();
+                for (int i = 0; i < SongDataGrid.Items.Count; ++i)
+                {
+                    SongInfo song = SongDataGrid.Items[i] as SongInfo;
+                    collection.Add(song.Uri);
+                }
+                int index = SongDataGrid.SelectedIndex < 0 ? 0 : SongDataGrid.SelectedIndex;
+                ViewModel.PlayAsSelectedPlaylist(collection, index);
+            }
+            else ViewModel.SwitchPlayMode();
+        }
+
+        private void NextCanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = true;
+        }
+
+        private void NextExecuted(object sender, ExecutedRoutedEventArgs e)
+        {
+            ViewModel.PlayNextSong();
+        }
+
+        private void PreviousCanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = true;
+        }
+
+        private void PreviousExecuted(object sender, ExecutedRoutedEventArgs e)
+        {
+            ViewModel.PlayPreviousSong();
+        }
+
+        private void ForwardCanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = true;
+        }
+
+        private void ForwardExecuted(object sender, ExecutedRoutedEventArgs e)
+        {
+            ViewModel.MovePositionForward();
+        }
+
+        private void BackwardCanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = true;
+        }
+
+        private void BackwardExecuted(object sender, ExecutedRoutedEventArgs e)
+        {
+            ViewModel.MovePositionBackward();
+        }
+
+        private void RandomCanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            if (ViewModel.SelectedPlayList.Count != 0) e.CanExecute = true;
+        }
+
+        private void RandomExecuted(object sender, ExecutedRoutedEventArgs e)
+        {
+            ViewModel.PlayRandom();
+        }
+
+        private void StopCanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = true;
+        }
+
+        private void StopExcuted(object sender, ExecutedRoutedEventArgs e)
+        {
+            ViewModel.StopPlaying();
+        }
+
+        private void FullScreenCanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = true;
+        }
+
+        private void FullScreenExcuted(object sender, ExecutedRoutedEventArgs e)
+        {
+            if (WindowState != WindowState.Maximized) WindowState = WindowState.Maximized;
+            else WindowState = WindowState.Normal;
+        }
+
+        private void OnAddPlayNext(object sender, RoutedEventArgs e)
+        {
+            ViewModel.AddtoSelectedPlaylist(ViewModel.CurrentSelectedPlaylistFile.SongLocations);
+        }
+
+        private void MenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            MenuItem item = e.OriginalSource as MenuItem;
+            Playlist playlist = item.Header as Playlist;
+            List<string> files = new List<string>();
+            foreach (SongInfo song in SongDataGrid.SelectedItems.Cast<SongInfo>())
+            {
+                files.Add(song.Uri.LocalPath);
+            }
+            ViewModel.AddToPlaylistFile(playlist, files);
+        }
+
+        private void RemoveSongCanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            if (ReferenceEquals(ViewModel.AllSongs, ViewModel.CurrentSongCollection)) e.CanExecute = false;
+            else e.CanExecute = true;
+        }
+
+        private void RemoveSongExcuted(object sender, ExecutedRoutedEventArgs e)
+        {
+            Playlist selected = lbPlayList.SelectedItem as Playlist;
+            foreach (SongInfo song in SongDataGrid.SelectedItems.Cast<SongInfo>())
+            {
+                selected.SongLocations.Remove(song.Uri.LocalPath);
+            }
+            //refresh list
+            OnDisplaySelectedPlaylist(null, null);
+
+
+        }
+
+        private void OnDisplayVideoPanel(object sender, RoutedEventArgs e)
+        {
+            if (VideoPanel.Visibility == Visibility.Visible) VideoPanel.Visibility = Visibility.Hidden;
+            else VideoPanel.Visibility = Visibility.Visible;
         }
     }
     public class LinkListNodeToUri : IValueConverter
