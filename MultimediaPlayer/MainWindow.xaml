@@ -394,7 +394,7 @@
                         </Style>
                     </Label.Style>
                 </Label>
-                <Canvas Grid.Column="2" Name="VideoPanel" Background="{StaticResource VideoPanelBackground}" Visibility="Visible">
+                <Canvas Grid.Column="2" Name="VideoPanel" Background="{StaticResource VideoPanelBackground}" Visibility="Hidden">
                     <Image Panel.ZIndex="-1" Width="128" Height="128" Source="/icons/clef.png" Canvas.Left="446" Canvas.Top="225"/>
                     <ContentControl Name="MediaPlayer" Content="{Binding MediaPlayer}"
                                   Width="{Binding ElementName=VideoPanel,Path=ActualWidth}"
