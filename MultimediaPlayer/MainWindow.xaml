@@ -193,12 +193,12 @@
             <MenuItem Header="A_bout">
                 <MenuItem Header="_Student" Click="OnDisplayStudentInformation">
                     <MenuItem.Icon>
-                        <Image Source="/icons/github.png"/>
+                        <Image Source="/icons/student.png"/>
                     </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem Header="_Github" Click="OnDisplayGithubLink">
                     <MenuItem.Icon>
-                        <Image Source="/icons/student.png"/>
+                        <Image Source="/icons/github.png"/>
                     </MenuItem.Icon>
                 </MenuItem>
             </MenuItem>

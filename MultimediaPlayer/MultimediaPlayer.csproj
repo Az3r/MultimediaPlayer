@@ -114,9 +114,7 @@
   <ItemGroup>
     <Resource Include="icons\icon.png" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="PlayLists\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <Resource Include="icons\backward.png" />
     <Resource Include="icons\delete.png" />
@@ -141,12 +139,6 @@
     <Resource Include="icons\pencil.png" />
     <Resource Include="icons\volume.png" />
     <Resource Include="icons\video-window.png" />
-    <Content Include="library\Astrophysics_-_Il_Vento_Doro_Giornos_Theme_synthwave_retro_80s_remix_%28mp3.pm%29.mp3">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="library\ConnectMadoka-Claris_32yxe.mp3">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
