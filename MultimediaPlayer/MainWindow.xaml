@@ -1,0 +1,469 @@
+﻿<Window x:Class="MultimediaPlayer.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MultimediaPlayer"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
+        mc:Ignorable="d"
+        Loaded="OnLoaded" Closing="OnWindowClosing"
+        MinHeight="450" MinWidth="450"
+        Title="Multimedia Player" Icon="/icons/icon.png"
+        Height="800" Width="1200">
+
+    <Window.Resources>
+        <!--Commands-->
+        <local:MediaCommands x:Key="MediaCommands"/>
+        <!--converters-->
+        <local:LinkListNodeToUri x:Key="LinkListNodeToUriConverter"/>
+        <local:TimeSpanToString x:Key="TimeSpanToStringConverter"/>
+        <local:RemoveExtension x:Key="RemoveExtensionConverter"/>
+        <local:ZeroOneToPercentage x:Key="ZeroOneToPercentageConverter"/>
+        
+        <!--Colors-->
+        <LinearGradientBrush x:Key="ProgressBarForground" SpreadMethod="Repeat" StartPoint="0 0" EndPoint="0 1">
+            <GradientStop Color="#66f" Offset="0"/>
+            <GradientStop Color="#000080" Offset="0.45"/>
+            <GradientStop Color="#000080" Offset="0.55"/>
+            <GradientStop Color="#66f" Offset="1"/>
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="SongControlBackground"  SpreadMethod="Reflect" StartPoint="0.5 0" EndPoint="0.5 0.5">
+            <GradientStop Color="#ddd" Offset="0"/>
+            <GradientStop Color="#aaa" Offset="0.1"/>
+            <GradientStop Color="#aaa" Offset="0.9"/>
+            <GradientStop Color="#ddd" Offset="1"/>
+        </LinearGradientBrush>
+        <!--styles-->
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#ddd"/>
+            <Setter Property="Width" Value="50"/>
+            <Setter Property="Height" Value="50"/>
+        </Style>
+        <Style TargetType="Button" x:Key="SongControlButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="Margin" Value="10 0 10 0"/>
+            <Style.Triggers>
+                <Trigger Property="Tag">
+                    <Trigger.Value>
+                        <sys:Boolean>True</sys:Boolean>
+                    </Trigger.Value>
+                    <Setter Property="Background" Value="LightBlue"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        
+        
+        <Style TargetType="Image" x:Key="SongControlImage">
+            <Setter Property="Width" Value="24"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Stretch" Value="Uniform"/>
+        </Style>
+
+        <Style TargetType="Button" BasedOn="{StaticResource SongControlButton}" x:Key="PlayButton">
+            <Setter Property="Content">
+                <Setter.Value>
+                    <Image Style="{StaticResource SongControlImage}" Width="48" Height="48" Source="/icons/pause.png"/>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="Tag">
+                    <Trigger.Value>
+                        <sys:Boolean>True</sys:Boolean>
+                    </Trigger.Value>
+                    <Setter Property="Content">
+                        <Setter.Value>
+                            <Image Style="{StaticResource SongControlImage}" Width="48" Height="48" Source="/icons/play.png"/>
+                        </Setter.Value>
+                    </Setter>
+
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        
+    </Window.Resources>
+
+    <!--Window Commands-->
+    <Window.CommandBindings>
+        <CommandBinding Command="{x:Static local:MediaCommands.Exit}" CanExecute="ExitCanExecute" Executed="ExitExecuted"/>
+        <CommandBinding Command="{x:Static local:MediaCommands.Play}" CanExecute="PlayCanExecute" Executed="PlayExecuted"/>
+        <CommandBinding Command="{x:Static local:MediaCommands.Rename}" CanExecute="RenameCanExecute" Executed="RenameExecuted"/>
+        <CommandBinding Command="{x:Static local:MediaCommands.Create}" CanExecute="CreateCanExecute" Executed="CreateExecuted"/>
+    </Window.CommandBindings>
+    <Window.InputBindings>
+        <KeyBinding Gesture="Alt+F4" Command="{x:Static local:MediaCommands.Exit}"/>
+        <KeyBinding Gesture="Ctrl+P" Command="{x:Static local:MediaCommands.Play}" />
+        <KeyBinding Gesture="F2" Command="{x:Static local:MediaCommands.Rename}"/>
+        <KeyBinding Gesture="Ctrl+R" Command="{x:Static local:MediaCommands.Rename}"/>
+        <KeyBinding Gesture="Ctrl+N" Command="{x:Static local:MediaCommands.Create}"/>
+    </Window.InputBindings>
+    
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="150"/>
+        </Grid.RowDefinitions>
+
+        <Menu Grid.Row="0" VerticalContentAlignment="Center" Height="25" IsMainMenu="True">
+            <Menu.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal"/>
+                </ItemsPanelTemplate>
+            </Menu.ItemsPanel>
+            <MenuItem Header="_File">
+                <MenuItem Header="_Exit" BorderThickness="0" InputGestureText="Alt+F4" Command="{x:Static local:MediaCommands.Exit}"/>
+            </MenuItem>
+            <MenuItem Header="_View">
+                <MenuItem Header="_Full Screen" InputGestureText="Alt+F11">
+                    <MenuItem.Icon>
+                        <Image Source="/icons/expand.png" />
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+            <MenuItem Header="_Songs">
+                <MenuItem Header="_Play/Pause" InputGestureText="P">
+                    <MenuItem.Icon>
+                        <Image Source="/icons/play.png"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="_Stop" InputGestureText="S">
+                    <MenuItem.Icon>
+                        <Image Source="/icons/stop.png"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="_Next" InputGestureText="N">
+                    <MenuItem.Icon>
+                        <Image Source="/icons/next.png"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="_Previous" InputGestureText="B">
+                    <MenuItem.Icon>
+                        <Image Source="/icons/previous.png"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="_Random" InputGestureText="M">
+                    <MenuItem.Icon>
+                        <Image Source="/icons/shuffle.png"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+            <MenuItem Header="_Playlists">
+                <MenuItem Header="_Create Playlist" InputGestureText="Ctrl+N" Command="{x:Static local:MediaCommands.Create}">
+                    <MenuItem.Icon>
+                        <Image Source="/icons/playlist.png"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="_Remove Playlist" InputGestureText="Del">
+                    <MenuItem.Icon>
+                        <Image Source="/icons/delete.png"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Re_name Playlist" InputGestureText="F2" Command="{x:Static local:MediaCommands.Rename}"/>
+            </MenuItem>
+            <MenuItem Header="A_bout">
+                <MenuItem Header="_Student" InputGestureText="Alt+S" Click="OnDisplayStudentInformation">
+                    <MenuItem.Icon>
+                        <Image Source="/icons/github.png"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="_Github" InputGestureText="Alt+G" Click="OnDisplayGithubLink">
+                    <MenuItem.Icon>
+                        <Image Source="/icons/student.png"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+        </Menu>
+
+        <Canvas Grid.Row="1" Name="SongPanel"  ClipToBounds="True" AllowDrop="True" DragDrop.Drop="OnMediaFilesDropped">
+            <Grid Background="#ababab"
+                Width="{Binding ElementName=SongPanel,Path=ActualWidth,Mode=OneWay}"
+                Height="{Binding ElementName=SongPanel,Path=ActualHeight, Mode=OneWay}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition MinWidth="150" Width="auto"/>
+                    <ColumnDefinition Width="2"/>
+                    <ColumnDefinition Width="77*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <StackPanel Grid.Column="0">
+                    <DockPanel LastChildFill="True">
+                        <Image Margin="5" DockPanel.Dock="Left" Width="16" Height="16" Source="/icons/playlist.png" Stretch="Uniform"/>
+                        <TextBlock DockPanel.Dock="Left" Margin="10 0 0 0" Text="Playlists" 
+                                   VerticalAlignment="Center" FontSize="14"/>
+                    </DockPanel>
+                    <ListBox Name="lbPlayList" Margin="16 0 0 0" ItemsSource="{Binding PlaylistFiles}"
+                            Background="Transparent" BorderThickness="0" 
+                            SelectionMode="Single" SelectionChanged="OnListboxSelectionChanged"
+                            HorizontalContentAlignment="Stretch">
+                        <!--Listbox ContextMenu-->
+                        <ListBox.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="_Play" FontWeight="Bold"/>
+                                <MenuItem Header="_Open"/>
+                                <MenuItem Header="_Rename" Command="{x:Static local:MediaCommands.Rename}"/>
+                                <MenuItem Header="_Delete"/>
+                            </ContextMenu>
+                        </ListBox.ContextMenu>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <Image DockPanel.Dock="Left" Margin="5" Width="16" Height="16"
+                                           Source="/icons/list.png"/>
+                                    <TextBox Name="tbPlaylistName" Text="{Binding Path=Name, Converter={StaticResource RemoveExtensionConverter},Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}"
+                                             Cursor="Arrow" IsReadOnly="True"
+                                             BorderThickness="0" Background="Transparent"
+                                             KeyDown="OnTextBoxKeyDown"
+                                             LostFocus="OnTextBoxLostFocus"
+                                             LostKeyboardFocus="OnTextBoxLostKeyboardFocus"
+                                             VerticalContentAlignment="Center"  HorizontalContentAlignment="Stretch"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="0"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="true">
+                                        <Setter Property="Cursor" Value="Hand"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
+                    <DockPanel LastChildFill="True">
+                        <DockPanel.Style>
+                            <Style TargetType="DockPanel">
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="true">
+                                        <Setter Property="Cursor" Value="Hand"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                                <EventSetter Event="MouseLeftButtonDown" Handler="OnDisplayAllSongs"/>
+                            </Style>
+                        </DockPanel.Style>
+                        <Image DockPanel.Dock="Left" Width="16" Height="16" Stretch="Uniform"
+                               Margin="5" Source="/icons/icon.png"/>
+                        <TextBlock VerticalAlignment="Center" Text="Library" Margin="10 0 0 0"/>
+                    </DockPanel>
+                </StackPanel>
+                <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Grid.RowSpan="2"/>
+
+                <DataGrid Name="SongDataGrid" Grid.Column="2" Visibility="Visible"
+                          IsReadOnly="True" AutoGenerateColumns="False"
+                          SelectionMode="Extended"
+                          ItemsSource="{Binding CurrentSongCollection,Mode=OneWay}">
+                    <DataGrid.ColumnHeaderStyle>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                        </Style>
+                    </DataGrid.ColumnHeaderStyle>
+                    <!--DataGrid Row Style-->
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow">
+                            <EventSetter Event="MouseDoubleClick" Handler="OnPlaySelectedSong"/>
+                        </Style>
+                    </DataGrid.RowStyle>
+                    <!--DataGrid data-->
+                    <DataGrid.Columns>
+                        <DataGridTemplateColumn MinWidth="16" Width="50" MaxWidth="150">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Image Source="{Binding Image}" MaxWidth="128" MaxHeight="128" 
+                                        Stretch="Uniform" Margin="5"
+                                        VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Title" Width="*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Label Content="{Binding Title}" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Artist" Width="*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Label Content="{Binding Artist}" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Album" Width="*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Label Content="{Binding Album}" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Duration" Width="*" MaxWidth="100">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Label Content="{Binding Duration,Converter={StaticResource TimeSpanToStringConverter}}"
+                                           
+                                           VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                    <!--DataGrid Context Menu-->
+                    <DataGrid.ContextMenu>
+                        <ContextMenu>
+                            <ContextMenu.ItemContainerStyle>
+                                <Style TargetType="MenuItem">
+                                    <Style.Triggers>
+                                        <Trigger Property="IsEnabled" Value="False">
+                                            <Setter Property="Visibility" Value="Hidden"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ContextMenu.ItemContainerStyle>
+                            <MenuItem Header="_Play" FontWeight="Bold"/>
+                            <MenuItem Header="_Play next"/>
+                            <MenuItem Header="_Add to playlist"/>
+                            <MenuItem Header="_Remove"/>
+                        </ContextMenu>
+                    </DataGrid.ContextMenu>
+                </DataGrid>
+                <Label Grid.Column="2" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                       VerticalContentAlignment="Center" HorizontalContentAlignment="Center" FontSize="20">
+                    <Label.Style>
+                        <Style TargetType="Label">
+                            <Setter Property="Visibility" Value="Hidden"/>
+                            <Setter Property="Content" Value="Your Library folder is empty. Drag some files here"/>
+                            <Setter Property="Background" Value="#ddd"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ElementName=SongDataGrid,Path=Items.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Label.Style>
+                </Label>
+            </Grid>
+
+        </Canvas>
+        <Grid Grid.Row="2" Background="#232323">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="30"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0" Padding="0 0 0 5" Height="20"
+                    MouseLeftButtonDown="OnCaptureSongPosition"
+                    MouseLeftButtonUp="OnReleaseSongPosition"
+                    MouseMove="OnUpdateSongPosition">
+                <ProgressBar Name="SongProgressBar"  Background="White" Foreground="{StaticResource ProgressBarForground}"
+                         Value="{Binding SongProgress, Mode=OneWay}">
+                </ProgressBar>
+            </Border>
+
+            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center">
+                <Label Foreground="White" Content="{Binding SongPosition, Converter={StaticResource TimeSpanToStringConverter}, Mode=OneWay}"/>
+                <Label Foreground="White" Content="/"/>
+                <Label Foreground="White" Content="{Binding SongDuration, Converter={StaticResource TimeSpanToStringConverter}, Mode=OneWay}"/>
+            </StackPanel>
+            <Border Grid.Row="2" BorderBrush="White" BorderThickness="1" Background="{StaticResource SongControlBackground}" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button Style="{StaticResource SongControlButton}" Tag="{Binding IsRecycleOn,Mode=OneWay}" Click="OnClickRecyclePlaylist">
+                        <Button.Content>
+                            <Image Style="{StaticResource SongControlImage}" Source="/icons/recycle.png"/>
+                        </Button.Content>
+                        <Button.ToolTip>
+                            <ToolTip Content="Recycle playlist" Placement="Bottom"/>
+                        </Button.ToolTip>
+                    </Button>
+                    <Button Style="{StaticResource SongControlButton}" Tag="{Binding IsShuffleOn,Mode=OneWay}" Click="OnClickShuffleSong">
+                        <Button.Content>
+                            <Image Style="{StaticResource SongControlImage}" Source="/icons/shuffle.png"/>
+                        </Button.Content>
+                        <Button.ToolTip>
+                            <ToolTip Content="Shuffle playlist" Placement="Bottom"/>
+                        </Button.ToolTip>
+                    </Button>
+                    <Button Style="{StaticResource SongControlButton}" Tag="{Binding IsReplayOn,Mode=OneWay}" Click="OnClickReplaySong">
+                        <Button.Content>
+                            <Image Style="{StaticResource SongControlImage}" Source="/icons/replay.png"/>
+                        </Button.Content>
+                        <Button.ToolTip>
+                            <ToolTip Content="Repeat current song" Placement="Bottom"/>
+                        </Button.ToolTip>
+                    </Button>
+                    <Button Style="{StaticResource SongControlButton}" Click="OnClickStopSong">
+                        <Button.Content>
+                            <Image Style="{StaticResource SongControlImage}" Source="/icons/stop.png"/>
+                        </Button.Content>
+                        <Button.ToolTip>
+                            <ToolTip Content="Stop current song" Placement="Bottom"/>
+                        </Button.ToolTip>
+                    </Button>
+                    <Button Style="{StaticResource SongControlButton}" Click="OnClickPreviousSong">
+                        <Button.Content>
+                            <Image Style="{StaticResource SongControlImage}" Source="/icons/previous.png"/>
+                        </Button.Content>
+                        <Button.ToolTip>
+                            <ToolTip Content="Play previous song" Placement="Bottom"/>
+                        </Button.ToolTip>
+                    </Button>
+                    <Button Style="{StaticResource SongControlButton}" Click="OnClickBackwardSong">
+                        <Button.Content>
+                            <Image Style="{StaticResource SongControlImage}" Source="/icons/backward.png"/>
+                        </Button.Content>
+                        <Button.ToolTip>
+                            <ToolTip Content="Offset song backward" Placement="Bottom"/>
+                        </Button.ToolTip>
+                    </Button>
+                    <Button Style="{StaticResource PlayButton}" Tag="{Binding IsPlaying}" Click="OnClickSwitchPlayMode">
+                        <Button.ToolTip>
+                            <ToolTip Content="Play/Pause" Placement="Bottom"/>
+                        </Button.ToolTip>
+                    </Button>
+                    <Button Style="{StaticResource SongControlButton}" Click="OnClickForwardSong">
+                        <Image Style="{StaticResource SongControlImage}" Source="/icons/forward.png"/>
+                        <Button.ToolTip>
+                            <ToolTip Content="Offset song forward" Placement="Bottom"/>
+                        </Button.ToolTip>
+                    </Button>
+                    <Button Style="{StaticResource SongControlButton}" Click="OnClickNextSong">
+                        <Image Style="{StaticResource SongControlImage}" Source="/icons/next.png"/>
+                        <Button.ToolTip>
+                            <ToolTip Content="Play next song" Placement="Bottom"/>
+                        </Button.ToolTip>
+                    </Button>
+                    <Button Style="{StaticResource SongControlButton}" Click="OnClickMuteVolumn">
+                        <Button.Content>
+                            <Image Style="{StaticResource SongControlImage}" Source="/icons/volume.png"/>
+                        </Button.Content>
+                        <Button.ToolTip>
+                            <ToolTip Content="Mute/Unmute volume" Placement="Bottom"/>
+                        </Button.ToolTip>
+                    </Button>
+                    <ProgressBar Name="VolumeProgressBar" Width="125" Height="10" 
+                                 Value="{Binding SongVolume,Mode=TwoWay,Converter={StaticResource ZeroOneToPercentageConverter}}"
+                                 MouseLeftButtonDown="OnCaptureVolume"
+                                 MouseLeftButtonUp="OnReleaseVolume"
+                                 MouseMove="OnUpdateVolume">
+                        <ProgressBar.Foreground>
+                            <LinearGradientBrush StartPoint="0 0" EndPoint="0 1">
+                                <GradientStop Color="LightBlue" Offset="0"/>
+                                <GradientStop Color="Green" Offset="0.7"/>
+                            </LinearGradientBrush>
+                        </ProgressBar.Foreground>
+                        <ProgressBar.ToolTip>
+                            <ToolTip Content="Volume" Placement="Bottom"/>
+                        </ProgressBar.ToolTip>
+                    </ProgressBar>
+                </StackPanel>
+            </Border>
+
+        </Grid>
+
+
+
+    </Grid>
+</Window>
